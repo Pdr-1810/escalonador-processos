@@ -231,11 +231,11 @@ class EscalonadorEDF(EscalonadorCAV):
 
             if lista_execucao and lista_execucao[0].tempo_restante == 0:
                 tarefa_finalizada = lista_execucao.pop(0)
-                if contador <= tarefa.deadline:
+                if contador <= tarefa_finalizada.deadline:
                     print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
 
                 else:
-                    print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+                    print(f"Tarefa {tarefa_finalizada.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
