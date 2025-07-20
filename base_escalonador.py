@@ -14,6 +14,7 @@ class TarefaCAV:
         self.duracao = duracao      # Tempo necessário para completar a tarefa (em segundos)
         self.prioridade = prioridade # Prioridade da tarefa (quanto menor o número, maior a prioridade)
         self.deadline = deadline     #Valor da deadline, caso não seja passado nenhum valor assume o maior valor possível para um sistema de 32 bits (daedline quase infinita)
+        self.pontuacao = (2*duracao)/(7*prioridade) 
         self.tempo_chegada = tempo_chegada
         self.tempo_restante = duracao # Tempo restante para completar a tarefa
         self.tempo_inicio = 0       # Hora em que a tarefa começa
@@ -150,7 +151,7 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
-            if fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+            while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
                 lista_execucao.append(tarefa)
                 lista_execucao.sort(key=lambda tarefa: tarefa.prioridade)
@@ -177,6 +178,7 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
         self.exibir_sobrecarga()
 
 class EscalonadorEDF(EscalonadorCAV):
+    
     def __init__(self, quantum, valor_sobrecarga=1):
         super().__init__(valor_sobrecarga)
         self.quantum = quantum
@@ -187,7 +189,7 @@ class EscalonadorEDF(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
-            if fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+            while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
                 lista_execucao.append(tarefa)
                 lista_execucao.sort(key=lambda tarefa: tarefa.deadline)
@@ -220,6 +222,52 @@ class EscalonadorEDF(EscalonadorCAV):
 
         self.exibir_sobrecarga()
 
+class EscalonadorPontuacao(EscalonadorCAV):    
+    def __init__(self, quantum, valor_sobrecarga=1):
+        super().__init__(valor_sobrecarga)
+        self.quantum = quantum
+
+    def escalonar(self):
+        lista_execucao = []
+        fila_chegada = deque(self.tarefas)
+        contador = 0
+
+        while lista_execucao or fila_chegada:
+            while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+                tarefa = fila_chegada.popleft()
+                if tarefa.prioridade == 1:
+                    tarefa.pontuacao = 10000
+                lista_execucao.append(tarefa)
+                lista_execucao.sort(key=lambda tarefa: tarefa.pontuacao, reverse=True)
+
+            if lista_execucao[0].pontuacao != 10000:
+                for t in lista_execucao:
+                    if t.tempo_restante < self.quantum:
+                        lista_execucao.remove(t)
+                        lista_execucao.insert(0,t)
+                        break
+
+            if lista_execucao:
+                tarefa = lista_execucao[0]
+                if tarefa.tempo_restante > 0:
+                    tempo_exec = min(tarefa.tempo_restante, self.quantum)
+                    tarefa.tempo_restante -= tempo_exec
+                    contador += tempo_exec
+                    print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                    time.sleep(tempo_exec)
+                    if tarefa.tempo_restante > 0:
+                        self.registrar_sobrecarga(self.valor_sobrecarga)
+                        contador += self.valor_sobrecarga
+                
+                else:
+                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a pontuacao, tempo total: {contador - tarefa.tempo_chegada}")
+                    lista_execucao.pop(0)
+
+            else:
+                contador += 1
+
+        self.exibir_sobrecarga()
+
 class CAV:
     def __init__(self, id):
         self.id = id  # Identificador único para cada CAV
@@ -229,7 +277,7 @@ class CAV:
         self.tarefas.append(tarefa)
 
     def executar_tarefas(self, escalonador):
-        print(f"CAV {self.id} começando a execução de tarefas...\n")
+        print(f"CAV {self.id} começando a execucao de tarefas...\n")
         escalonador.escalonar()
         print(f"CAV {self.id} terminou todas as suas tarefas.\n")
 
@@ -237,10 +285,10 @@ class CAV:
 # Função para criar algumas tarefas fictícias
 def criar_tarefas():
     tarefas = [
-        TarefaCAV("Detecção de Obstáculo", 10, prioridade=5, deadline=20, tempo_chegada=2),
-        TarefaCAV("Planejamento de Rota", 8, prioridade=2, deadline=30, tempo_chegada=4),
-        TarefaCAV("Manutenção de Velocidade", 7, prioridade=7, deadline=40, tempo_chegada=6),
-        TarefaCAV("Comunicando com Infraestrutura", 5, prioridade=3, deadline=50, tempo_chegada=0)
+        TarefaCAV("Deteccao de Obstaculo", 6, prioridade=5, deadline=20, tempo_chegada=0),
+        TarefaCAV("Planejamento de Rota", 8, prioridade=1, deadline=30, tempo_chegada=0),
+        TarefaCAV("Manutencao de Velocidade", 1, prioridade=7, deadline=40, tempo_chegada=0),
+        TarefaCAV("Comunicando com Infraestrutura", 3, prioridade=3, deadline=50, tempo_chegada=0)
     ]
     tarefas.sort(key=lambda tarefa: tarefa.tempo_chegada)  #ordena de acordo com o tempo de chegada
     return tarefas
@@ -254,6 +302,15 @@ if __name__ == "__main__":
     cav = CAV(id=1)
     for t in tarefas:
         cav.adicionar_tarefa(t)
+
+    #Criar um escalonador Pontuação
+    print("Simulando CAV com Pontuação: \n")
+    escalonador_pont = EscalonadorPontuacao(2)
+    for t in tarefas:
+        escalonador_pont.adicionar_tarefa(t)
+    
+    simulador_pont = CAV(id=1)
+    simulador_pont.executar_tarefas(escalonador_pont)
 
     #Criar um escalonador EDF 
     print("Simulando CAV com EDF:\n")
