@@ -106,6 +106,11 @@ class EscalonadorRoundRobin(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
+
+            if lista_execucao and lista_execucao[0].tempo_restante == 0:
+                tarefa_finalizada = lista_execucao.pop(0)
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
                 lista_execucao.append(tarefa)
@@ -124,10 +129,6 @@ class EscalonadorRoundRobin(EscalonadorCAV):
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                         lista_execucao.append(temp)
-                
-                else:
-                    print(f"Tarefa {tarefa.nome} finalizada, tempo de espera: {contador - tarefa.tempo_chegada}")
-                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -140,6 +141,7 @@ class EscalonadorRoundRobin(EscalonadorCAV):
 
 
 class EscalonadorPrioridade(EscalonadorCAV):
+    
     def __init__(self, valor_sobrecarga=1):
         super().__init__(valor_sobrecarga)
 
@@ -149,6 +151,10 @@ class EscalonadorPrioridade(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
+
+            if lista_execucao and lista_execucao[0].tempo_restante == 0:
+                tarefa_finalizada = lista_execucao.pop(0)
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -182,6 +188,10 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
 
         while lista_execucao or fila_chegada:
 
+            if lista_execucao and lista_execucao[0].tempo_restante == 0:
+                tarefa_finalizada = lista_execucao.pop(0)
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
                 lista_execucao.append(tarefa)
@@ -200,10 +210,6 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
                     if tarefa.tempo_restante > 0:
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
-                
-                else:
-                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
-                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -222,6 +228,14 @@ class EscalonadorEDF(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
+
+            if lista_execucao and lista_execucao[0].tempo_restante == 0:
+                tarefa_finalizada = lista_execucao.pop(0)
+                if contador <= tarefa.deadline:
+                    print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+
+                else:
+                    print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -242,14 +256,6 @@ class EscalonadorEDF(EscalonadorCAV):
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                 
-                else:
-                    if contador <= tarefa.deadline:
-                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
-
-                    else:
-                        print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
-
-                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -269,6 +275,10 @@ class EscalonadorPontuacao(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
+
+            if lista_execucao and lista_execucao[0].tempo_restante == 0:
+                tarefa_finalizada = lista_execucao.pop(0)
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -299,10 +309,6 @@ class EscalonadorPontuacao(EscalonadorCAV):
                     if tarefa.tempo_restante > 0:
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
-                
-                else:
-                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a pontuacao, tempo total: {contador - tarefa.tempo_chegada}")
-                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -327,9 +333,9 @@ class CAV:
 def criar_tarefas():
     tarefas = [
         TarefaCAV("Deteccao de Obstaculo", 6, prioridade=5, deadline=20, tempo_chegada=0),
-        TarefaCAV("Planejamento de Rota", 8, prioridade=1, deadline=30, tempo_chegada=0),
-        TarefaCAV("Manutencao de Velocidade", 1, prioridade=7, deadline=40, tempo_chegada=0),
-        TarefaCAV("Comunicando com Infraestrutura", 3, prioridade=3, deadline=50, tempo_chegada=0)
+        TarefaCAV("Planejamento de Rota", 7, prioridade=1, deadline=30, tempo_chegada=8),
+        TarefaCAV("Manutencao de Velocidade", 1, prioridade=7, deadline=40, tempo_chegada=20),
+        TarefaCAV("Comunicando com Infraestrutura", 3, prioridade=3, deadline=50, tempo_chegada=20)
     ]
     tarefas.sort(key=lambda tarefa: tarefa.tempo_chegada)  #ordena de acordo com o tempo de chegada
     return tarefas
