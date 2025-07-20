@@ -35,13 +35,9 @@ class TarefaCAV:
 
 # Classe abstrata de Escalonador
 class EscalonadorCAV(ABC):
-    def __init__(self, valor_sobrecarga=None):  #Podemos atribuir agora o valor da sobrecarga
+    def __init__(self, valor_sobrecarga=1):  #Podemos atribuir agora o valor da sobrecarga
         self.tarefas = []
-        self.sobrecarga_total = 0  # Sobrecarga total acumulada
-
-        if valor_sobrecarga == None:                    #Se o valor de sobrecarga não for passado, gera um aleatório
-            valor_sobrecarga = decimal_aleatorio()
-        
+        self.sobrecarga_total = 0
         self.valor_sobrecarga = valor_sobrecarga
 
     def adicionar_tarefa(self, tarefa):
@@ -67,7 +63,7 @@ class EscalonadorCAV(ABC):
 
 
 class EscalonadorFIFO(EscalonadorCAV):
-    def __init__(self, valor_sobrecarga=None):
+    def __init__(self, valor_sobrecarga=1):
         super().__init__(valor_sobrecarga)
 
     def escalonar(self):
@@ -88,7 +84,7 @@ class EscalonadorFIFO(EscalonadorCAV):
 
 
 class EscalonadorRoundRobin(EscalonadorCAV):
-    def __init__(self, quantum, valor_sobrecarga=None):
+    def __init__(self, quantum, valor_sobrecarga=1):
         super().__init__(valor_sobrecarga)
         self.quantum = quantum
 
@@ -121,7 +117,7 @@ class EscalonadorRoundRobin(EscalonadorCAV):
 
 
 class EscalonadorPrioridade(EscalonadorCAV):
-    def __init__(self, valor_sobrecarga=None):
+    def __init__(self, valor_sobrecarga=1):
         super().__init__(valor_sobrecarga)
 
     def escalonar(self):
@@ -144,52 +140,85 @@ class EscalonadorPrioridade(EscalonadorCAV):
         self.exibir_sobrecarga()
 
 class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
-    def __init__(self, quantum, valor_sobrecarga=None):
+    def __init__(self, quantum, valor_sobrecarga=1):
         super().__init__(valor_sobrecarga)
         self.quantum = quantum
 
     def escalonar(self):
-        self.tarefas.sort(key=lambda tarefa: tarefa.prioridade)
-        tempo_inicial = 0
-        for tarefa in self.tarefas:
-            tarefa.tempo_inicio = tempo_inicial
+        lista_execucao = []
+        fila_chegada = deque(self.tarefas)
+        contador = 0
 
-            while tarefa.tempo_restante > 0:  #como ja ordenei pela prioridade, fico repetindo trocando de contexto com a mesma tarefa até ela acabar
-                tempo_exec = min(tarefa.tempo_restante, self.quantum)
-                tarefa.tempo_restante -= tempo_exec
-                tempo_inicial += tempo_exec
-                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
-                time.sleep(tempo_exec)
-                self.registrar_sobrecarga(self.valor_sobrecarga)
+        while lista_execucao or fila_chegada:
+            if fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+                tarefa = fila_chegada.popleft()
+                lista_execucao.append(tarefa)
+                lista_execucao.sort(key=lambda tarefa: tarefa.prioridade)
 
-            print(f"Tarefa {tarefa.nome} finalizada, tempo de espera: {tempo_inicial}")
-            self.exibir_sobrecarga()
+            if lista_execucao:
+                tarefa = lista_execucao[0]
+                if tarefa.tempo_restante > 0:
+                    tempo_exec = min(tarefa.tempo_restante, self.quantum)
+                    tarefa.tempo_restante -= tempo_exec
+                    contador += tempo_exec
+                    print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                    time.sleep(tempo_exec)
+                    if tarefa.tempo_restante > 0:
+                        self.registrar_sobrecarga(self.valor_sobrecarga)
+                        contador += self.valor_sobrecarga
+                
+                else:
+                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
+                    lista_execucao.pop(0)
+
+            else:
+                contador += 1
+
+        self.exibir_sobrecarga()
 
 class EscalonadorEDF(EscalonadorCAV):
-    def __init__(self, quantum, valor_sobrecarga=None):
+    def __init__(self, quantum, valor_sobrecarga=1):
         super().__init__(valor_sobrecarga)
         self.quantum = quantum
 
     def escalonar(self):
-        self.tarefas.sort(key=lambda tarefa: tarefa.deadline)
-        tempo_inicial = 0
-        for tarefa in self.tarefas:
-            tarefa.tempo_inicio = tempo_inicial
+        lista_execucao = []
+        fila_chegada = deque(self.tarefas)
+        contador = 0
 
-            while tarefa.tempo_restante > 0:  #como ja ordenei pela deadline, fico repetindo trocando de contexto com a mesma tarefa até ela acabar
-                tempo_exec = min(tarefa.tempo_restante, self.quantum)
-                tarefa.tempo_restante -= tempo_exec
-                tempo_inicial += tempo_exec
-                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
-                time.sleep(tempo_exec)
-                self.registrar_sobrecarga(self.valor_sobrecarga)
-                tempo_inicial += self.valor_sobrecarga
+        while lista_execucao or fila_chegada:
+            if fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+                tarefa = fila_chegada.popleft()
+                lista_execucao.append(tarefa)
+                lista_execucao.sort(key=lambda tarefa: tarefa.deadline)
 
-            if (tempo_inicial <= tarefa.deadline):
-                print(f"Tarefa {tarefa.nome} finalizada cumprindo o deadline, tempo de espera: {tempo_inicial}")
+            if lista_execucao:
+                tarefa = lista_execucao[0]
+                if tarefa.tempo_restante > 0:
+                    tempo_exec = min(tarefa.tempo_restante, self.quantum)
+                    tarefa.tempo_restante -= tempo_exec
+                    contador += tempo_exec
+                    print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                    time.sleep(tempo_exec)
+                    if tarefa.tempo_restante > 0:
+                        self.registrar_sobrecarga(self.valor_sobrecarga)
+                        contador += self.valor_sobrecarga
+                
+                else:
+                    if contador <= tarefa.deadline:
+                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
+
+                    else:
+                        print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
+
+                    lista_execucao.pop(0)
+
             else:
-                print(f"Tarefa {tarefa.nome} finalizada não cumprindo o deadline, tempo de espera: {tempo_inicial}")
-            self.exibir_sobrecarga()
+                contador += 1
+            
+            print(f"Tempo atual {contador}")
+
+        self.exibir_sobrecarga()
 
 class CAV:
     def __init__(self, id):
@@ -208,17 +237,13 @@ class CAV:
 # Função para criar algumas tarefas fictícias
 def criar_tarefas():
     tarefas = [
-        TarefaCAV("Detecção de Obstáculo", random.randint(5, 10), prioridade=5, deadline=10),
-        TarefaCAV("Planejamento de Rota", random.randint(3, 6), prioridade=2, deadline=20),
-        TarefaCAV("Manutenção de Velocidade", random.randint(2, 5), prioridade=7, deadline=30),
-        TarefaCAV("Comunicando com Infraestrutura", random.randint(4, 7), prioridade=3, deadline=40)
+        TarefaCAV("Detecção de Obstáculo", 10, prioridade=5, deadline=20, tempo_chegada=2),
+        TarefaCAV("Planejamento de Rota", 8, prioridade=2, deadline=30, tempo_chegada=4),
+        TarefaCAV("Manutenção de Velocidade", 7, prioridade=7, deadline=40, tempo_chegada=6),
+        TarefaCAV("Comunicando com Infraestrutura", 5, prioridade=3, deadline=50, tempo_chegada=0)
     ]
     tarefas.sort(key=lambda tarefa: tarefa.tempo_chegada)  #ordena de acordo com o tempo de chegada
     return tarefas
-
-#Função para gerar um número aleatório entre 0 e 10 com uma casa decimal (pode aumentar se quiser um escopo maior de tempo de sobrecarga)
-def decimal_aleatorio():
-    return random.randint(1, 10)/10
 
 # Exemplo de uso
 if __name__ == "__main__":
@@ -230,7 +255,7 @@ if __name__ == "__main__":
     for t in tarefas:
         cav.adicionar_tarefa(t)
 
-    # Criar um escalonador EDF 
+    #Criar um escalonador EDF 
     print("Simulando CAV com EDF:\n")
     escalonador_EDF= EscalonadorEDF(2)
     for t in tarefas:
