@@ -125,9 +125,9 @@ class EscalonadorRoundRobin(EscalonadorCAV):
                         contador += self.valor_sobrecarga
                         lista_execucao.append(temp)
                 
-                    else:
-                        print(f"Tarefa {tarefa.nome} finalizada, tempo de espera: {contador - tarefa.tempo_chegada}")
-                        lista_execucao.pop(0)
+                else:
+                    print(f"Tarefa {tarefa.nome} finalizada, tempo de espera: {contador - tarefa.tempo_chegada}")
+                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -201,9 +201,9 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                 
-                    else:
-                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
-                        lista_execucao.pop(0)
+                else:
+                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
+                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -242,14 +242,14 @@ class EscalonadorEDF(EscalonadorCAV):
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                 
+                else:
+                    if contador <= tarefa.deadline:
+                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
+
                     else:
-                        if contador <= tarefa.deadline:
-                            print(f"Tarefa {tarefa.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
+                        print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
 
-                        else:
-                            print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
-
-                        lista_execucao.pop(0)
+                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -300,9 +300,9 @@ class EscalonadorPontuacao(EscalonadorCAV):
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                 
-                    else:
-                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a pontuacao, tempo total: {contador - tarefa.tempo_chegada}")
-                        lista_execucao.pop(0)
+                else:
+                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a pontuacao, tempo total: {contador - tarefa.tempo_chegada}")
+                    lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -339,19 +339,10 @@ if __name__ == "__main__":
     # Criar algumas tarefas fictícias
     tarefas = criar_tarefas()
 
-    # Criar um CAV
-    cav = CAV(id=1)
+    # Criar uns CAV
+    cav1 = CAV(id=1)
     for t in tarefas:
-        cav.adicionar_tarefa(t)
-
-    # Criar um escalonador Round Robin com quantum de 3 segundos
-    print("\nSimulando CAV com Round Robin:\n")
-    escalonador_rr = EscalonadorRoundRobin(quantum=3)
-    for t in tarefas:
-        escalonador_rr.adicionar_tarefa(t)
-
-    simulador_rr = CAV(id=1)
-    simulador_rr.executar_tarefas(escalonador_rr)
+        cav1.adicionar_tarefa(t)
 
     #Criar um escalonador Pontuação
     print("Simulando CAV com Pontuação: \n")
