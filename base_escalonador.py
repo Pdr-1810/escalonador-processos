@@ -68,16 +68,27 @@ class EscalonadorFIFO(EscalonadorCAV):
         super().__init__(valor_sobrecarga)
 
     def escalonar(self):
-        """Escalonamento FIFO para veículos autônomos"""
-        tempo_inicial = 0
-        for tarefa in self.tarefas:
-            tarefa.tempo_inicio = tempo_inicial
-            tempo_inicial += tarefa.duracao
-            tarefa.tempo_final = tempo_inicial
-            print(f"Executando tarefa {tarefa.nome} de {tarefa.duracao} segundos.")
-            time.sleep(tarefa.duracao)  # Simula a execução da tarefa
+        lista_execucao = []
+        fila_chegada = deque(self.tarefas)
+        contador = 0
 
-            print(f"Tarefa {tarefa.nome} finalizada.\n")
+        while lista_execucao or fila_chegada:
+            while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+                tarefa = fila_chegada.popleft()
+                lista_execucao.append(tarefa)
+
+            if lista_execucao:
+                tarefa = lista_execucao[0]
+                tempo_exec = tarefa.duracao
+                tarefa.tempo_restante -= tempo_exec
+                contador += tempo_exec
+                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                time.sleep(tempo_exec)
+                print(f"Tarefa {tarefa.nome} finalizada, tempo de espera: {contador - tarefa.tempo_chegada}")
+                lista_execucao.pop(0)
+
+            else:
+                contador += 1
 
         self.exibir_sobrecarga()
 
@@ -90,25 +101,36 @@ class EscalonadorRoundRobin(EscalonadorCAV):
         self.quantum = quantum
 
     def escalonar(self):
-        """Escalonamento Round Robin com tarefas de CAVs"""
-        fila = deque(self.tarefas)
-        tempo_inicial = 0
-        while fila:
-            tarefa = fila.popleft()
-            if tarefa.tempo_restante > 0:
-                tarefa.tempo_inicio = tempo_inicial
-                tempo_exec = min(tarefa.tempo_restante, self.quantum)
-                tarefa.tempo_restante -= tempo_exec
-                tempo_inicial += tempo_exec
-                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
-                time.sleep(tempo_exec)  # Simula a execução da tarefa
+        lista_execucao = []
+        fila_chegada = deque(self.tarefas)
+        contador = 0
 
-                # Registrando a sobrecarga, como exemplo, podemos adicionar um tempo fixo de sobrecarga
-                self.registrar_sobrecarga(self.valor_sobrecarga)  # 0.3 segundos de sobrecarga por tarefa
+        while lista_execucao or fila_chegada:
+            while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+                tarefa = fila_chegada.popleft()
+                lista_execucao.append(tarefa)
+
+            if lista_execucao:
+                tarefa = lista_execucao[0]
                 if tarefa.tempo_restante > 0:
-                    fila.append(tarefa)  # Coloca a tarefa de volta na fila se não terminar
-                tarefa.tempo_final = tempo_inicial
-                print(f"Tarefa {tarefa.nome} finalizada ou ainda pendente.\n")
+                    tempo_exec = min(tarefa.tempo_restante, self.quantum)
+                    tarefa.tempo_restante -= tempo_exec
+                    contador += tempo_exec
+                    print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                    time.sleep(tempo_exec)
+
+                    if tarefa.tempo_restante > 0:
+                        temp = lista_execucao.pop(0)
+                        self.registrar_sobrecarga(self.valor_sobrecarga)
+                        contador += self.valor_sobrecarga
+                        lista_execucao.append(temp)
+                
+                    else:
+                        print(f"Tarefa {tarefa.nome} finalizada, tempo de espera: {contador - tarefa.tempo_chegada}")
+                        lista_execucao.pop(0)
+
+            else:
+                contador += 1
 
         self.exibir_sobrecarga()
 
@@ -122,21 +144,29 @@ class EscalonadorPrioridade(EscalonadorCAV):
         super().__init__(valor_sobrecarga)
 
     def escalonar(self):
-        """Escalonamento por Prioridade (menor número = maior prioridade)"""
-        print("Escalonamento por Prioridade:")
-        # Ordena as tarefas pela prioridade
-        self.tarefas.sort(key=lambda tarefa: tarefa.prioridade)
-        tempo_inicial = 0
-        for tarefa in self.tarefas:
-            tarefa.tempo_inicio = tempo_inicial
-            tempo_inicial += tarefa.duracao
-            tarefa.tempo_final = tempo_inicial
-            print(f"Executando tarefa {tarefa.nome} de {tarefa.duracao} segundos com prioridade {tarefa.prioridade}.")
-            time.sleep(tarefa.duracao)
+        lista_execucao = []
+        fila_chegada = deque(self.tarefas)
+        contador = 0
 
-            # Registrando a sobrecarga, como exemplo, podemos adicionar um tempo fixo de sobrecarga
-            self.registrar_sobrecarga(self.valor_sobrecarga)  # 0.4 segundos de sobrecarga por tarefa
-            print(f"Tarefa {tarefa.nome} finalizada.\n")
+        while lista_execucao or fila_chegada:
+
+            while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+                tarefa = fila_chegada.popleft()
+                lista_execucao.append(tarefa)
+                lista_execucao.sort(key=lambda tarefa: tarefa.prioridade)
+
+            if lista_execucao:
+                tarefa = lista_execucao[0]
+                tempo_exec = tarefa.duracao
+                tarefa.tempo_restante -= tempo_exec
+                contador += tempo_exec
+                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                time.sleep(tempo_exec)
+                print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
+                lista_execucao.pop(0)
+
+            else:
+                contador += 1
 
         self.exibir_sobrecarga()
 
@@ -151,6 +181,7 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
+
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
                 lista_execucao.append(tarefa)
@@ -158,19 +189,21 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
 
             if lista_execucao:
                 tarefa = lista_execucao[0]
+
                 if tarefa.tempo_restante > 0:
                     tempo_exec = min(tarefa.tempo_restante, self.quantum)
                     tarefa.tempo_restante -= tempo_exec
                     contador += tempo_exec
                     print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
                     time.sleep(tempo_exec)
+
                     if tarefa.tempo_restante > 0:
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                 
-                else:
-                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
-                    lista_execucao.pop(0)
+                    else:
+                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
+                        lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -189,6 +222,7 @@ class EscalonadorEDF(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
+
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
                 lista_execucao.append(tarefa)
@@ -196,24 +230,26 @@ class EscalonadorEDF(EscalonadorCAV):
 
             if lista_execucao:
                 tarefa = lista_execucao[0]
+
                 if tarefa.tempo_restante > 0:
                     tempo_exec = min(tarefa.tempo_restante, self.quantum)
                     tarefa.tempo_restante -= tempo_exec
                     contador += tempo_exec
                     print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
                     time.sleep(tempo_exec)
+
                     if tarefa.tempo_restante > 0:
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                 
-                else:
-                    if contador <= tarefa.deadline:
-                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
-
                     else:
-                        print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
+                        if contador <= tarefa.deadline:
+                            print(f"Tarefa {tarefa.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
 
-                    lista_execucao.pop(0)
+                        else:
+                            print(f"Tarefa {tarefa.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa.tempo_chegada}")
+
+                        lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -233,14 +269,17 @@ class EscalonadorPontuacao(EscalonadorCAV):
         contador = 0
 
         while lista_execucao or fila_chegada:
+
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
+
                 if tarefa.prioridade == 1:
                     tarefa.pontuacao = 10000
+
                 lista_execucao.append(tarefa)
                 lista_execucao.sort(key=lambda tarefa: tarefa.pontuacao, reverse=True)
 
-            if lista_execucao[0].pontuacao != 10000:
+            if lista_execucao and lista_execucao[0].pontuacao != 10000:
                 for t in lista_execucao:
                     if t.tempo_restante < self.quantum:
                         lista_execucao.remove(t)
@@ -249,19 +288,21 @@ class EscalonadorPontuacao(EscalonadorCAV):
 
             if lista_execucao:
                 tarefa = lista_execucao[0]
+
                 if tarefa.tempo_restante > 0:
                     tempo_exec = min(tarefa.tempo_restante, self.quantum)
                     tarefa.tempo_restante -= tempo_exec
                     contador += tempo_exec
                     print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
                     time.sleep(tempo_exec)
+
                     if tarefa.tempo_restante > 0:
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
                 
-                else:
-                    print(f"Tarefa {tarefa.nome} finalizada cumprindo a pontuacao, tempo total: {contador - tarefa.tempo_chegada}")
-                    lista_execucao.pop(0)
+                    else:
+                        print(f"Tarefa {tarefa.nome} finalizada cumprindo a pontuacao, tempo total: {contador - tarefa.tempo_chegada}")
+                        lista_execucao.pop(0)
 
             else:
                 contador += 1
@@ -302,6 +343,15 @@ if __name__ == "__main__":
     cav = CAV(id=1)
     for t in tarefas:
         cav.adicionar_tarefa(t)
+
+    # Criar um escalonador Round Robin com quantum de 3 segundos
+    print("\nSimulando CAV com Round Robin:\n")
+    escalonador_rr = EscalonadorRoundRobin(quantum=3)
+    for t in tarefas:
+        escalonador_rr.adicionar_tarefa(t)
+
+    simulador_rr = CAV(id=1)
+    simulador_rr.executar_tarefas(escalonador_rr)
 
     #Criar um escalonador Pontuação
     print("Simulando CAV com Pontuação: \n")
