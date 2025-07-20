@@ -143,6 +143,53 @@ class EscalonadorPrioridade(EscalonadorCAV):
 
         self.exibir_sobrecarga()
 
+class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
+    def __init__(self, quantum, valor_sobrecarga=None):
+        super().__init__(valor_sobrecarga)
+        self.quantum = quantum
+
+    def escalonar(self):
+        self.tarefas.sort(key=lambda tarefa: tarefa.prioridade)
+        tempo_inicial = 0
+        for tarefa in self.tarefas:
+            tarefa.tempo_inicio = tempo_inicial
+
+            while tarefa.tempo_restante > 0:  #como ja ordenei pela prioridade, fico repetindo trocando de contexto com a mesma tarefa até ela acabar
+                tempo_exec = min(tarefa.tempo_restante, self.quantum)
+                tarefa.tempo_restante -= tempo_exec
+                tempo_inicial += tempo_exec
+                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                time.sleep(tempo_exec)
+                self.registrar_sobrecarga(self.valor_sobrecarga)
+
+            print(f"Tarefa {tarefa.nome} finalizada, tempo de espera: {tempo_inicial}")
+            self.exibir_sobrecarga()
+
+class EscalonadorEDF(EscalonadorCAV):
+    def __init__(self, quantum, valor_sobrecarga=None):
+        super().__init__(valor_sobrecarga)
+        self.quantum = quantum
+
+    def escalonar(self):
+        self.tarefas.sort(key=lambda tarefa: tarefa.deadline)
+        tempo_inicial = 0
+        for tarefa in self.tarefas:
+            tarefa.tempo_inicio = tempo_inicial
+
+            while tarefa.tempo_restante > 0:  #como ja ordenei pela deadline, fico repetindo trocando de contexto com a mesma tarefa até ela acabar
+                tempo_exec = min(tarefa.tempo_restante, self.quantum)
+                tarefa.tempo_restante -= tempo_exec
+                tempo_inicial += tempo_exec
+                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                time.sleep(tempo_exec)
+                self.registrar_sobrecarga(self.valor_sobrecarga)
+                tempo_inicial += self.valor_sobrecarga
+
+            if (tempo_inicial <= tarefa.deadline):
+                print(f"Tarefa {tarefa.nome} finalizada cumprindo o deadline, tempo de espera: {tempo_inicial}")
+            else:
+                print(f"Tarefa {tarefa.nome} finalizada não cumprindo o deadline, tempo de espera: {tempo_inicial}")
+            self.exibir_sobrecarga()
 
 class CAV:
     def __init__(self, id):
@@ -161,10 +208,10 @@ class CAV:
 # Função para criar algumas tarefas fictícias
 def criar_tarefas():
     tarefas = [
-        TarefaCAV("Detecção de Obstáculo", random.randint(5, 10), prioridade=1),
-        TarefaCAV("Planejamento de Rota", random.randint(3, 6), prioridade=2),
-        TarefaCAV("Manutenção de Velocidade", random.randint(2, 5), prioridade=3),
-        TarefaCAV("Comunicando com Infraestrutura", random.randint(4, 7), prioridade=1)
+        TarefaCAV("Detecção de Obstáculo", random.randint(5, 10), prioridade=5, deadline=10),
+        TarefaCAV("Planejamento de Rota", random.randint(3, 6), prioridade=2, deadline=20),
+        TarefaCAV("Manutenção de Velocidade", random.randint(2, 5), prioridade=7, deadline=30),
+        TarefaCAV("Comunicando com Infraestrutura", random.randint(4, 7), prioridade=3, deadline=40)
     ]
     tarefas.sort(key=lambda tarefa: tarefa.tempo_chegada)  #ordena de acordo com o tempo de chegada
     return tarefas
@@ -182,6 +229,24 @@ if __name__ == "__main__":
     cav = CAV(id=1)
     for t in tarefas:
         cav.adicionar_tarefa(t)
+
+    # Criar um escalonador EDF 
+    print("Simulando CAV com EDF:\n")
+    escalonador_EDF= EscalonadorEDF(2)
+    for t in tarefas:
+        escalonador_EDF.adicionar_tarefa(t)
+
+    simulador_EDF= CAV(id=1)
+    simulador_EDF.executar_tarefas(escalonador_EDF)
+
+    # Criar um escalonador com prioridade preemptivo 
+    print("Simulando CAV com Prioridade preemptivo:\n")
+    escalonador_prioridadePreemptivo= EscalonadorPrioridadePreemptivo(2)
+    for t in tarefas:
+        escalonador_prioridadePreemptivo.adicionar_tarefa(t)
+
+    simulador_prioridadePreemptivo= CAV(id=1)
+    simulador_prioridadePreemptivo.executar_tarefas(escalonador_prioridadePreemptivo)
 
     # Criar um escalonador FIFO
     print("Simulando CAV com FIFO:\n")
