@@ -93,6 +93,35 @@ class EscalonadorFIFO(EscalonadorCAV):
         self.exibir_sobrecarga()
 
 # O escalonador FIFO executa os processos na ordem em que foram adicionados, sem interrupção, até que todos os processos terminem.
+class EscalonadorSJF(EscalonadorCAV):
+    def __init__(self, valor_sobrecarga=1):
+        super().__init__(valor_sobrecarga)
+
+    def escalonar(self):
+        lista_execucao = []
+        fila_chegada = deque(self.tarefas)
+        contador = 0
+
+        while lista_execucao or fila_chegada:
+            while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
+                tarefa = fila_chegada.popleft()
+                lista_execucao.append(tarefa)
+                lista_execucao.sort(key=lambda tarefa: tarefa.duracao)
+
+            if lista_execucao:
+                tarefa = lista_execucao[0]
+                tempo_exec = tarefa.duracao
+                tarefa.tempo_restante -= tempo_exec
+                contador += tempo_exec
+                print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
+                time.sleep(tempo_exec)
+                print(f"Tarefa {tarefa.nome} finalizada, tempo de resposta: {contador - tarefa.tempo_chegada}")
+                lista_execucao.pop(0)
+
+            else:
+                contador += 1
+
+        self.exibir_sobrecarga()
 
 
 class EscalonadorRoundRobin(EscalonadorCAV):
@@ -109,7 +138,7 @@ class EscalonadorRoundRobin(EscalonadorCAV):
 
             if lista_execucao and lista_execucao[0].tempo_restante == 0:
                 tarefa_finalizada = lista_execucao.pop(0)
-                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -152,10 +181,6 @@ class EscalonadorPrioridade(EscalonadorCAV):
 
         while lista_execucao or fila_chegada:
 
-            if lista_execucao and lista_execucao[0].tempo_restante == 0:
-                tarefa_finalizada = lista_execucao.pop(0)
-                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
-
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
                 lista_execucao.append(tarefa)
@@ -168,7 +193,7 @@ class EscalonadorPrioridade(EscalonadorCAV):
                 contador += tempo_exec
                 print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
                 time.sleep(tempo_exec)
-                print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa.tempo_chegada}")
+                print(f"Tarefa {tarefa.nome} finalizada cumprindo a prioridade, tempo de resposta: {contador - tarefa.tempo_chegada}")
                 lista_execucao.pop(0)
 
             else:
@@ -190,7 +215,7 @@ class EscalonadorPrioridadePreemptivo(EscalonadorCAV):
 
             if lista_execucao and lista_execucao[0].tempo_restante == 0:
                 tarefa_finalizada = lista_execucao.pop(0)
-                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -232,10 +257,10 @@ class EscalonadorEDF(EscalonadorCAV):
             if lista_execucao and lista_execucao[0].tempo_restante == 0:
                 tarefa_finalizada = lista_execucao.pop(0)
                 if contador <= tarefa_finalizada.deadline:
-                    print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a deadline, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+                    print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a deadline, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
 
                 else:
-                    print(f"Tarefa {tarefa_finalizada.nome} finalizada não cumprindo a deadline, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+                    print(f"Tarefa {tarefa_finalizada.nome} finalizada não cumprindo a deadline, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -255,12 +280,9 @@ class EscalonadorEDF(EscalonadorCAV):
                     if tarefa.tempo_restante > 0:
                         self.registrar_sobrecarga(self.valor_sobrecarga)
                         contador += self.valor_sobrecarga
-                
 
             else:
                 contador += 1
-            
-            print(f"Tempo atual {contador}")
 
         self.exibir_sobrecarga()
 
@@ -278,7 +300,7 @@ class EscalonadorPontuacao(EscalonadorCAV):
 
             if lista_execucao and lista_execucao[0].tempo_restante == 0:
                 tarefa_finalizada = lista_execucao.pop(0)
-                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de espera: {contador - tarefa_finalizada.tempo_chegada}")
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -291,7 +313,7 @@ class EscalonadorPontuacao(EscalonadorCAV):
 
             if lista_execucao and lista_execucao[0].pontuacao != 10000:
                 for t in lista_execucao:
-                    if t.tempo_restante < self.quantum:
+                    if t.tempo_restante <= self.quantum:
                         lista_execucao.remove(t)
                         lista_execucao.insert(0,t)
                         break
@@ -332,10 +354,10 @@ class CAV:
 # Função para criar algumas tarefas fictícias
 def criar_tarefas():
     tarefas = [
-        TarefaCAV("Deteccao de Obstaculo", 6, prioridade=5, deadline=20, tempo_chegada=0),
-        TarefaCAV("Planejamento de Rota", 7, prioridade=1, deadline=30, tempo_chegada=8),
-        TarefaCAV("Manutencao de Velocidade", 1, prioridade=7, deadline=40, tempo_chegada=20),
-        TarefaCAV("Comunicando com Infraestrutura", 3, prioridade=3, deadline=50, tempo_chegada=20)
+        TarefaCAV("Deteccao de Obstaculo", 6, prioridade=5, deadline=20, tempo_chegada=10),
+        TarefaCAV("Planejamento de Rota", 7, prioridade=1, deadline=30, tempo_chegada=0),
+        TarefaCAV("Manutencao de Velocidade", 1, prioridade=7, deadline=40, tempo_chegada=10),
+        TarefaCAV("Comunicando com Infraestrutura", 3, prioridade=3, deadline=50, tempo_chegada=7)
     ]
     tarefas.sort(key=lambda tarefa: tarefa.tempo_chegada)  #ordena de acordo com o tempo de chegada
     return tarefas
@@ -349,6 +371,15 @@ if __name__ == "__main__":
     cav1 = CAV(id=1)
     for t in tarefas:
         cav1.adicionar_tarefa(t)
+
+    # Criar um escalonador SJF
+    print("\nSimulando CAV com SJF:\n")
+    escalonador_sjf = EscalonadorSJF()
+    for t in tarefas:
+        escalonador_sjf.adicionar_tarefa(t)
+
+    simulador_sjf = CAV(id=1)
+    simulador_sjf.executar_tarefas(escalonador_sjf)
 
     #Criar um escalonador Pontuação
     print("Simulando CAV com Pontuação: \n")
