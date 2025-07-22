@@ -14,7 +14,7 @@ class TarefaCAV:
         self.duracao = duracao      # Tempo necessário para completar a tarefa (em segundos)
         self.prioridade = prioridade # Prioridade da tarefa (quanto menor o número, maior a prioridade)
         self.deadline = deadline     #Valor da deadline, caso não seja passado nenhum valor assume o maior valor possível para um sistema de 32 bits (daedline quase infinita)
-        self.pontuacao = (2*duracao)/(7*prioridade) 
+        self.pontuacao = 6*(1/deadline) + 4*(1/prioridade) 
         self.tempo_chegada = tempo_chegada
         self.tempo_restante = duracao # Tempo restante para completar a tarefa
         self.tempo_inicio = 0       # Hora em que a tarefa começa
@@ -300,7 +300,12 @@ class EscalonadorPontuacao(EscalonadorCAV):
 
             if lista_execucao and lista_execucao[0].tempo_restante == 0:
                 tarefa_finalizada = lista_execucao.pop(0)
-                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
+                print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a prioridade e o deadline, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
+
+            if lista_execucao and contador > lista_execucao[0].deadline:
+                tarefa_finalizada = lista_execucao.pop(0)
+                print(f"Tarefa {tarefa_finalizada.nome} nao cumpriu o deadline e sera encerrada, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")            
+                                    
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -313,7 +318,7 @@ class EscalonadorPontuacao(EscalonadorCAV):
 
             if lista_execucao and lista_execucao[0].pontuacao != 10000:
                 for t in lista_execucao:
-                    if t.tempo_restante <= self.quantum:
+                    if t.tempo_restante < self.quantum:
                         lista_execucao.remove(t)
                         lista_execucao.insert(0,t)
                         break
@@ -354,8 +359,8 @@ class CAV:
 # Função para criar algumas tarefas fictícias
 def criar_tarefas():
     tarefas = [
-        TarefaCAV("Deteccao de Obstaculo", 6, prioridade=5, deadline=20, tempo_chegada=10),
-        TarefaCAV("Planejamento de Rota", 7, prioridade=1, deadline=30, tempo_chegada=0),
+        TarefaCAV("Deteccao de Obstaculo", 6, prioridade=5, deadline=15, tempo_chegada=10),
+        TarefaCAV("Planejamento de Rota", 7, prioridade=1, deadline=9, tempo_chegada=0),
         TarefaCAV("Manutencao de Velocidade", 1, prioridade=7, deadline=40, tempo_chegada=10),
         TarefaCAV("Comunicando com Infraestrutura", 3, prioridade=3, deadline=50, tempo_chegada=7)
     ]
@@ -372,14 +377,7 @@ if __name__ == "__main__":
     for t in tarefas:
         cav1.adicionar_tarefa(t)
 
-    # Criar um escalonador SJF
-    print("\nSimulando CAV com SJF:\n")
-    escalonador_sjf = EscalonadorSJF()
-    for t in tarefas:
-        escalonador_sjf.adicionar_tarefa(t)
-
-    simulador_sjf = CAV(id=1)
-    simulador_sjf.executar_tarefas(escalonador_sjf)
+    
 
     #Criar um escalonador Pontuação
     print("Simulando CAV com Pontuação: \n")
