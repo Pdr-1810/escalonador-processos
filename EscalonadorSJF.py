@@ -12,6 +12,8 @@ class EscalonadorSJF(EscalonadorCAV):
         lista_execucao = []
         fila_chegada = deque(self.tarefas)
         contador = 0
+        tempo_resposta_total = 0
+        quantidade_tarefas = len(fila_chegada)
 
         while lista_execucao or fila_chegada:
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
@@ -26,13 +28,16 @@ class EscalonadorSJF(EscalonadorCAV):
                 contador += tempo_exec
                 print(f"Executando tarefa {tarefa.nome} por {tempo_exec} segundos.")
                 time.sleep(tempo_exec)
-                print(f"Tarefa {tarefa.nome} finalizada, tempo de resposta: {contador - tarefa.tempo_chegada}")
+                tempo_resposta = contador - tarefa.tempo_chegada
+                print(f"Tarefa {tarefa.nome} finalizada, tempo de resposta: {tempo_resposta}")
+                tempo_resposta_total += tempo_resposta
                 lista_execucao.pop(0)
 
             else:
                 contador += 1
 
         self.exibir_sobrecarga()
+        print(f"Tempo de resposta médio = {tempo_resposta_total/quantidade_tarefas:.2f}")
 
 if __name__ == "__main__":
     # Criar algumas tarefas fictícias

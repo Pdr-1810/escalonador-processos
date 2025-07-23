@@ -13,16 +13,21 @@ class EscalonadorEDF(EscalonadorCAV):
         lista_execucao = []
         fila_chegada = deque(self.tarefas)
         contador = 0
+        tempo_resposta_total = 0
+        quantidade_tarefas = len(fila_chegada)
 
         while lista_execucao or fila_chegada:
 
             if lista_execucao and lista_execucao[0].tempo_restante == 0:
                 tarefa_finalizada = lista_execucao.pop(0)
+                tempo_resposta = contador - tarefa_finalizada.tempo_chegada
                 if contador <= tarefa_finalizada.deadline:
-                    print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a deadline, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
+                    print(f"Tarefa {tarefa_finalizada.nome} finalizada cumprindo a deadline, tempo de resposta: {tempo_resposta}")
 
                 else:
-                    print(f"Tarefa {tarefa_finalizada.nome} finalizada não cumprindo a deadline, tempo de resposta: {contador - tarefa_finalizada.tempo_chegada}")
+                    print(f"Tarefa {tarefa_finalizada.nome} finalizada não cumprindo a deadline, tempo de resposta: {tempo_resposta}")
+
+                tempo_resposta_total += tempo_resposta
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
                 tarefa = fila_chegada.popleft()
@@ -47,6 +52,8 @@ class EscalonadorEDF(EscalonadorCAV):
                 contador += 1
 
         self.exibir_sobrecarga()
+        print(f"Tempo de resposta médio = {tempo_resposta_total/quantidade_tarefas:.2f}")
+        
 
 if __name__ == "__main__":
     # Criar algumas tarefas fictícias
