@@ -28,7 +28,7 @@ class EscalonadorPontuacao(EscalonadorCAV):
                 tarefa_finalizada = lista_execucao.pop(0)
                 tempo_resposta = contador - tarefa_finalizada.tempo_chegada
                 print(f"Tarefa {tarefa_finalizada.nome} nao cumpriu o deadline e sera encerrada, tempo de resposta: {tempo_resposta}")
-                quantidade_tarefas -= 1           
+                tempo_resposta_total += tempo_resposta
                                     
 
             while fila_chegada and fila_chegada[0].tempo_chegada <= contador:
